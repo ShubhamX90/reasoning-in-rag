@@ -1,0 +1,56 @@
+You are given the following structured information:
+
+Query:
+{QUERY}
+
+Gold conflict_type:
+{CONFLICT_TYPE}
+
+Per-document notes (each includes verdict, key_fact, quote, verdict_reason, and source_quality):
+{PER_DOC_NOTES_JSON}
+
+---
+
+Task:
+Analyze the above per-document notes and determine **why** these documents collectively exhibit the provided conflict_type.
+
+Write your answer as a single JSON object strictly following this schema:
+
+{
+  "conflict_reason": "string (≤50 words)",
+  "answerable_under_evidence": true | false
+}
+
+---
+
+### Composition Guidelines
+
+• Explicitly mention document IDs (e.g., “d1 reports…”, “d2 contradicts…”, “d3 complements…”).  
+• Group and contrast clusters (e.g., “d1–d3 agree on X, while d4–d6 update or dispute Y”).  
+• Identify *what* differs (time, accuracy, perspective, dataset, or definition).  
+• State *why* this pattern fits the conflict_type by naming its mechanism — temporal, factual, contextual, methodological, or linguistic. 
+• For **No Conflict**, ensure your explanation emphasizes consistent or reinforcing evidence — never describe disagreement.  
+• For **Outdated Information**, specify which sources are older and that newer ones supersede them.  
+• For temporal cases, note that newer data, later analyses, or updated measurements replaced prior information (e.g., “2023 → 2024 record updates”).  
+• Keep the explanation compact, data-grounded, and mechanism-explicit.
+
+Interpretation rules:
+– “No Conflict”: all documents reinforce the same fact or conclusion.  
+– “Complementary Information”: each group covers a distinct but valid subtopic (different regions, entities, or timeframes) that together form a coherent whole.  
+– “Conflicting Opinions or Research Outcomes”: opposite conclusions or findings on the same issue.  
+– “Conflict Due to Outdated Information”: newer evidence or dataset revisions supersede earlier results; differences arise purely from time progression.  
+– “Conflict Due to Misinformation”: one or more sources contain demonstrably false, unreliable, or causally inverted claims opposed by accurate ones.
+
+Before finalizing, verify that your conflict_reason:
+• exactly reflects the given conflict_type,  
+• references real document IDs,  
+• remains ≤ 50 words,  
+• connects evidence clusters through an explicit causal mechanism,  
+• avoids vague statements like “sources differ” or “information varies,” and  
+• is strictly faithful to the provided per_doc_notes.
+
+Before finalizing, ask yourself:
+> “Does my reasoning *sound* like the type I was told to describe?”  
+If not, rephrase so it matches exactly.
+
+Output only the JSON. No commentary or markdown.

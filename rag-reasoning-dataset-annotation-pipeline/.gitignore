@@ -1,0 +1,53 @@
+# =========================
+# Python and environment files
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+.env
+openai_api_key.txt
+*.log
+
+# =========================
+# macOS / system files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Dataset outputs
+# =========================
+# Keep only small demo samples, exclude full heavy JSONLs
+data/stage1_outputs/conflicts_stage1_*.jsonl
+data/stage2_outputs/conflicts_stage2_*.jsonl
+data/stage3_outputs/conflicts_stage3_*.jsonl
+
+# Optionally allow sample files
+!data/sample/
+!data/sample/*
+
+# =========================
+# Async and temp artifacts
+# =========================
+*.tmp
+*.bak
+*.cache
+*.async
+*.summary.json
+*.partial.jsonl
+
+# =========================
+# Notebooks / experiments
+# =========================
+*.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints
+
+# =========================
+# Other large artifacts
+# =========================
+artifacts/
+checkpoints/
+models/

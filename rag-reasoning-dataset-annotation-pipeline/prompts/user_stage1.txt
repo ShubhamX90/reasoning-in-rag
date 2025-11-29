@@ -1,0 +1,158 @@
+Task:
+
+You are evaluating how well a single retrieved document addresses a given user query.  
+For the document shown below, decide whether it SUPPORTS, PARTIALLY SUPPORTS, or is IRRELEVANT to the query. This will be the verdict label. 
+Then extract:
+• a brief "verdict_reason" (≤ 50 words) explaining why that label fits;  
+• a minimal paraphrased "key_fact" — ONE sentence that is STRICTLY ENTAILED by the "quote" (only when the verdict is not "irrelevant");  
+• a short verbatim "quote" (≤ 50 words), a CONTIGUOUS span from the snippet that ANCHORS the "key_fact" (only when the verdict is not "irrelevant");  
+• a "source_quality" tag (high|low) judged only from the URL’s provenance (only when the verdict is not "irrelevant").
+
+Self-check before output:
+- Every concrete value in key_fact (names, dates, numbers, locations) appears in the quote.
+- The quote must be ≤50 words, verbatim, and contiguous (no ellipses or stitched spans).
+- For threshold Yes/No queries (e.g., “over X?”):
+  • If the snippet quotes a maximum/ceiling or range whose upper bound ≤ X, mark "supports" (direct answer).
+  • If the snippet uses hedged or probabilistic phrasing (e.g., “probably,” “may,” “might,” “could,” “suggests,” “appears,” “likely”) **without** a decisive numeric bound in the same quote, mark "partially supports."
+- For chronological or “next/upcoming/latest” queries, mark "supports" only if the snippet explicitly names the earliest or “next” event; otherwise mark "partially supports."
+  • If the snippet only describes an event or execution without explicitly stating it was the latest/next/most recent, mark "partially supports" even if the date looks recent.
+- For comparison or opinion queries (e.g., “Are online degrees valued less by employers?”, “Do remote workers perform better than on-site workers?”):
+  • Mark "supports" if the snippet clearly answers the general yes/no question for employers or the overall population.  
+  • Mark "partially supports" if the snippet limits its claim to a subset, region, industry, or conditional case (e.g., “for-profit colleges,” “in the U.S. only,” “if accredited”) or presents mixed findings.
+  • If the snippet describes a benefit, entitlement, or policy limited to a specific subgroup (e.g., federal employees, state residents, or workers in certain companies), mark “partially supports”, since it does not represent a universal finding or entitlement applicable to the general population.
+  • Examples of subset or conditional evidence (→ partial): “for-profit online colleges,” “U.S. employers only,” “executives surveyed,” or “if accredited.”
+  • If evidence comes from a limited sample (e.g., “executives surveyed,” “students polled,” “industry professionals only”), mark "partially supports" unless the snippet explicitly claims it generalizes to all employers or the public.
+  •	If the snippet provides average, recommended, or typical durations (not legal entitlements), mark “partially supports”, since averages do not define statutory rights.
+- For negative or inconclusive evidence:
+  • If the snippet explicitly states that “there is no evidence,” “not enough evidence,” or that results are “inconclusive” or “uncertain,” mark **"partially supports"** (never "supports").
+  • Such statements directly address the query but indicate lack of confirmation, so they count as partial rather than full support.
+  • Example: “There is no evidence that hypnosis helps smoking cessation.” → verdict = "partially supports".
+  • If the snippet explicitly says “there is no evidence,” treat it as **partial support** (not “supports”), since it signals absence of proof rather than evidence against.
+- If no such decisive span exists, use "partially supports" (or "irrelevant" if off-topic).
+- For date-specific or release-date queries, mark supports only if the snippet explicitly provides a concrete date or date range.
+  • If it mentions only the year, approximate timeframe, or a contradictory date, mark partially supports.
+  • If the snippet contains no date or timing reference at all:
+    • mark "irrelevant" only if it is also off-topic (e.g., reviews, cast discussions, or unrelated commentary);
+    • otherwise mark "partially supports" if it is about the correct entity (e.g., same season or show) but lacks date information.
+
+Inputs:
+
+- query: {QUERY}
+- doc: {
+    "doc_id": "{DOC_ID}",
+    "source_url": "{URL}",
+    "snippet": "{TEXT}",
+    "timestamp": "{TIMESTAMP}"
+  }
+
+Output the JSON object exactly in this form:
+{
+  "doc_id": "string",
+  "verdict": "supports|partially supports|irrelevant",
+  "key_fact": "string",
+  "quote": "string (<=50 words, verbatim contiguous span from snippet)",
+  "verdict_reason": "string (<=50 words)",
+  "source_quality": "high|low"
+}
+
+---
+
+FEW-SHOT EXAMPLES  
+Example 1 – Direct support  
+Query: "Who is the current Prime Minister of Japan?"  
+Snippet: "... In 2024, Fumio Kishida served as Japan’s Prime Minister ..."  
+Source URL: https://www.bbc.com/news/world-asia-japan-67211832  
+Output:
+{
+  "doc_id": "d1",
+  "verdict": "supports",
+  "key_fact": "Fumio Kishida is Japan’s Prime Minister as of 2024.",
+  "quote": "In 2024, Fumio Kishida served as Japan’s Prime Minister.",
+  "verdict_reason": "Explicitly states the answer and date.",
+  "source_quality": "high"
+}
+
+Example 2 – Partial, missing the key value  
+Query: "When did India launch the Chandrayaan-3 mission?"  
+Snippet: "The Chandrayaan-3 mission was India’s next lunar exploration effort after Chandrayaan-2 failed to land in 2019."  
+Source URL: https://www.isro.gov.in/chandrayaan3  
+Output:
+{
+  "doc_id": "d2",
+  "verdict": "partially supports",
+  "key_fact": "The snippet identifies Chandrayaan-3 as India’s lunar mission but does not provide a launch date.",
+  "quote": "The Chandrayaan-3 mission was India’s next lunar exploration effort after Chandrayaan-2 failed to land in 2019.",
+  "verdict_reason": "On-topic but lacks the requested date.",
+  "source_quality": "high"
+}
+
+Example 3 – Partial due to hedging/uncertainty  
+Query: "Does green tea reduce blood pressure?"  
+Snippet: "A small pilot study suggests possible effects, but evidence is inconclusive."  
+Source URL: https://www.healthline.com/nutrition/green-tea-and-blood-pressure  
+Output:
+{
+  "doc_id": "d3",
+  "verdict": "partially supports",
+  "key_fact": "A pilot study suggests green tea may lower blood pressure but remains inconclusive.",
+  "quote": "A small pilot study suggests possible effects, but evidence is inconclusive.",
+  "verdict_reason": "Relevant yet uncertain; incomplete evidence.",
+  "source_quality": "low"
+}
+
+Example 4 – Irrelevant  
+Query: "Who discovered penicillin?"  
+Snippet: "Penicillin remains one of the most widely used antibiotics worldwide."  
+Source URL: https://www.mayoclinic.org/penicillin-overview  
+Output:
+{
+  "doc_id": "d4",
+  "verdict": "irrelevant",
+  "key_fact": "",
+  "quote": "",
+  "verdict_reason": "Snippet discusses usage, not discovery.",
+  "source_quality": "high"
+}
+
+Example 5 – Threshold Yes/No (decisive bound ⇒ supports)  
+Query: "Can humans live to be over 150 years old?"  
+Snippet: "... the human lifespan’s limit is between 100 and 150 years ..."  
+Source URL: https://example.com/study  
+Output:
+{
+  "doc_id": "d5",
+  "verdict": "supports",
+  "key_fact": "The study states a maximum between 100 and 150 years, which is not over 150.",
+  "quote": "the human lifespan’s limit is between 100 and 150 years",
+  "verdict_reason": "An explicit upper bound ≤150 directly answers the threshold query (No).",
+  "source_quality": "low"
+}
+
+Example 6 – Threshold with hedging (⇒ partial)  
+Query: "Can humans live to be over 150 years old?"  
+Snippet: "Can people live to 150? Probably not, new study finds."  
+Output:
+{
+  "doc_id": "d6",
+  "verdict": "partially supports",
+  "key_fact": "A study reports it is probably not possible to live to 150.",
+  "quote": "Can people live to 150? Probably not, new study finds.",
+  "verdict_reason": "Hedged statement (‘probably’) without a decisive bound, so only partial support.",
+  "source_quality": "low"
+}
+
+Example 7 – Multiple future events (chronological query ⇒ partial)
+Query: "When is the next solar eclipse?"
+Snippet: "Future eclipses include one in 2025 and another in 2026."
+Output:
+{
+  "doc_id": "d7",
+  "verdict": "partially supports",
+  "key_fact": "The snippet lists eclipses in 2025 and 2026 but does not specify which is next.",
+  "quote": "Future eclipses include one in 2025 and another in 2026.",
+  "verdict_reason": "Lists multiple events without clearly stating which is next, so partial support.",
+  "source_quality": "low"
+}
+
+These examples show that “supports” requires a ≤50-word contiguous quote that directly resolves the query; for threshold, chronological, or comparison/opinion questions, only an explicit decisive claim for the general case counts as “supports.”
+Now process the provided document using these same principles and output ONLY the JSON object.

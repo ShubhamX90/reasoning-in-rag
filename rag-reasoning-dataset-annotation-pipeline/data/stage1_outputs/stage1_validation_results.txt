@@ -1,0 +1,7 @@
+
+======= SUMMARY =======
+Total records: 458
+Valid records: 458
+Invalid records: 0
+
+Top error categories:

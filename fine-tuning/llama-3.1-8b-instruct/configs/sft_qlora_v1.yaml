@@ -1,0 +1,58 @@
+# Base
+base_model: meta-llama/Llama-3.1-8B-Instruct
+run_name: sft_qlora_v1
+output_dir: checkpoints/sft_qlora_v1
+logging_dir: logs/sft_qlora_v1
+
+# Data
+train_path: data/processed/sft/train.jsonl
+eval_path:  data/processed/sft/dev.jsonl
+# Max context can get long; 6144 is a good balance for 8B on 4-bit
+max_seq_length: 6144
+packing: false            # keep one example per sequence for stability
+
+# LoRA (PEFT)
+lora_r: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+bias: "none"
+task_type: "CAUSAL_LM"
+
+# Optim & schedule
+learning_rate: 2.0e-4     # standard QLoRA LR for 8B
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.0
+optim: paged_adamw_8bit   # bitsandbytes optimizer
+
+# Train time
+num_train_epochs: 6
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 8
+max_grad_norm: 0.3
+
+# Precision & memory
+bf16: true                # falls back if not supported
+fp16: false
+gradient_checkpointing: true
+use_reentrant: false      # more stable on recent transformers
+attn_implementation: sdpa
+
+# Checkpointing / eval / logging
+evaluation_strategy: epoch
+save_strategy: epoch
+save_total_limit: 3
+logging_steps: 10
+report_to: none           # set to "wandb" if you want W&B
+
+# Collator — mask prompts, train only on assistant responses
+response_template: "<|start_header_id|>assistant<|end_header_id|>\n\n"

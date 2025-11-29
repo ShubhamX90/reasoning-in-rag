@@ -1,0 +1,16 @@
+# Big model weights / HF dumps
+fine-tuning/**/models/
+
+# Checkpoints, logs, outputs, misc
+fine-tuning/**/checkpoints/
+fine-tuning/**/outputs/
+fine-tuning/**/logs/
+fine-tuning/**/wandb/
+fine-tuning/**/run*.pid
+
+# HF caches (if any)
+hf_cache/
+.cache/
+
+# VSCode / misc
+.vscode/
