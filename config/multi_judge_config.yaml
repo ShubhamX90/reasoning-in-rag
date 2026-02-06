@@ -1,0 +1,226 @@
+# config/multi_judge_config.yaml
+# Configuration for Multi-Judge CATS Evaluation Pipeline
+
+# ================================================================
+# JUDGE POOLS
+# ================================================================
+
+judge_pools:
+  # Development phase - fast iteration with cheap models
+  development:
+    - model: "qwen/qwen-2.5-7b-instruct"
+      weight: 1.0
+      max_concurrent: 10
+      description: "Fast, cost-effective baseline"
+    
+    - model: "meta-llama/llama-3.1-8b-instruct"
+      weight: 1.0
+      max_concurrent: 10
+      description: "Alternative fast model for diversity"
+
+  # Production phase - balanced quality and cost
+  production:
+    - model: "deepseek/deepseek-chat"
+      weight: 1.5
+      max_concurrent: 20
+      description: "High-quality, cost-effective primary judge"
+    
+    - model: "qwen/qwen3-8b"
+      weight: 1.2
+      max_concurrent: 20
+      description: "Strong reasoning capabilities"
+    
+    - model: "mistralai/mistral-8b"
+      weight: 1.0
+      max_concurrent: 15
+      description: "Balanced performance"
+
+  # Validation phase - highest quality for final checks
+  validation:
+    - model: "anthropic/claude-haiku-4.5"
+      weight: 2.0
+      max_concurrent: 5
+      description: "Premium quality arbiter"
+    
+    - model: "deepseek/deepseek-r1-distill-qwen-32b"
+      weight: 1.5
+      max_concurrent: 10
+      description: "Strong reasoning distilled model"
+
+  # Arbiter for tie-breaking
+  arbiter:
+    model: "anthropic/claude-haiku-4.5"
+    max_concurrent: 5
+    description: "High-quality tie-breaker"
+
+# ================================================================
+# AGGREGATION STRATEGIES
+# ================================================================
+
+aggregation:
+  # Options: "majority_vote", "weighted_vote", "hierarchical"
+  strategy: "majority_vote"
+  
+  # Minimum number of judges that must succeed
+  min_judges: 2
+  
+  # Minimum confidence to accept result without review
+  confidence_threshold: 0.7
+  
+  # Use arbiter when judges tie
+  require_arbiter_on_tie: true
+  
+  # Use hierarchical: fast judges first, then arbiter if needed
+  hierarchical:
+    enabled: false
+    agreement_threshold: 0.8  # If agreement >= this, skip arbiter
+    fast_judges: ["qwen/qwen-2.5-7b-instruct", "deepseek/deepseek-chat"]
+    arbiter: "anthropic/claude-haiku-4.5"
+
+# ================================================================
+# COST MANAGEMENT
+# ================================================================
+
+cost_limits:
+  # Total budget for evaluation run (USD)
+  total_budget: 50.0
+  
+  # Per-model spending limit (USD)
+  per_model_limit: 20.0
+  
+  # Alert when spending reaches this threshold
+  alert_threshold: 40.0
+  
+  # Stop evaluation if budget exceeded
+  strict_budget: false
+
+# ================================================================
+# PERFORMANCE OPTIMIZATION
+# ================================================================
+
+performance:
+  # Enable response caching
+  use_cache: true
+  cache_dir: "./cache/judge_responses"
+  cache_ttl_days: 30
+  
+  # Rate limiting (requests per minute)
+  rate_limit: 100
+  
+  # Maximum concurrent requests
+  max_concurrent_requests: 20
+  
+  # Retry configuration
+  max_retries: 3
+  retry_delay: 2.0  # seconds
+  
+  # Timeout for API requests
+  timeout: 60.0  # seconds
+
+# ================================================================
+# LOGGING & DIAGNOSTICS
+# ================================================================
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  structured: true
+  output_dir: "./logs"
+  
+  # Track detailed diagnostics
+  track_diagnostics: true
+  diagnostics_output: "./logs/diagnostics.json"
+  
+  # Log individual judge decisions
+  log_judge_decisions: true
+  
+  # Flag disagreements for manual review
+  flag_disagreements: true
+  disagreement_threshold: 0.3  # Flag if agreement < this
+
+# ================================================================
+# EVALUATION SETTINGS
+# ================================================================
+
+evaluation:
+  # Conflict-aware evaluation
+  enable_conflict_eval: true
+  
+  # TRUST-SCORE evaluation
+  enable_trust_score: true
+  
+  # Maximum claims to extract per answer
+  max_claims_per_answer: 12
+  
+  # Conflict types for single-truth recall
+  single_truth_types: [1, 2, 4, 5]  # No conflict, Complementary, Outdated, Misinformation
+  
+  # Generate per-type breakdown
+  per_type_breakdown: true
+
+# ================================================================
+# OUTPUT CONFIGURATION
+# ================================================================
+
+output:
+  # Directory for all outputs
+  output_dir: "./outputs"
+  
+  # Markdown report path
+  report_md: "./outputs/evaluation_report.md"
+  
+  # Detailed JSON results
+  detailed_json: "./outputs/detailed_results.json"
+  
+  # Cost report
+  cost_report: "./outputs/cost_report.json"
+  
+  # Save judge decisions for analysis
+  save_judge_decisions: true
+  judge_decisions_file: "./outputs/judge_decisions.jsonl"
+
+# ================================================================
+# PHASE-SPECIFIC CONFIGURATIONS
+# ================================================================
+
+phases:
+  # Quick test with small dataset
+  test:
+    active_pool: "development"
+    max_samples: 10
+    aggregation_strategy: "majority_vote"
+    use_cache: false
+  
+  # Development with subset of data
+  dev:
+    active_pool: "development"
+    max_samples: null  # No limit
+    aggregation_strategy: "majority_vote"
+    use_cache: true
+  
+  # Full evaluation run
+  production:
+    active_pool: "production"
+    max_samples: null
+    aggregation_strategy: "weighted_vote"
+    use_cache: true
+  
+  # Final validation with best models
+  validation:
+    active_pool: "validation"
+    max_samples: null
+    aggregation_strategy: "weighted_vote"
+    use_cache: true
+
+# ================================================================
+# MODEL-SPECIFIC SETTINGS
+# ================================================================
+
+model_settings:
+  # Temperature for judge models
+  temperature: 0.0
+  
+  # Max tokens for judge responses
+  max_tokens: 300
+  
+  # Seed for reproducibility
+  seed: 42
