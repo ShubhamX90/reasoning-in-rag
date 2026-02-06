@@ -14,3 +14,6 @@ hf_cache/
 
 # VSCode / misc
 .vscode/
+
+.DS_Store
+**/.DS_Store
